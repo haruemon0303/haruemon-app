@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>はるえもんとおしゃべり</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <div class="container">
+
+    <!-- 好感度バー -->
+    <div class="affection-bar-container">
+      <label for="affectionBar">好感度：</label>
+      <progress id="affectionBar" max="100" value="0"></progress>
+      <span id="affectionDisplay">0%</span>
+    </div>
+
+    <h1>はるえもんとおしゃべり</h1>
+
+    <!-- キャラクター画像 -->
+    <img id="characterImage" src="character.png" alt="キャラクター画像" />
+
+    <!-- 現在の性格表示 -->
+    <p id="personalityDisplay">現在のはるえもんの性格：ツンデレ</p>
+
+    <!-- チャットログ -->
+    <div id="chat-area" class="chat-box"></div>
+
+    <!-- 入力フォーム -->
+    <form id="chat-form">
+      <input type="text" id="user-input" placeholder="話しかけてみよう…" autocomplete="off" />
+      <button type="button" onclick="sendMessage()">送信</button>
+    </form>
+
+    <!-- モード選択と音声入力 -->
+    <div class="mode-switch">
+      <label><input type="radio" name="mode" value="chat" checked> 会話モード</label>
+      <label><input type="radio" name="mode" value="search"> 検索モード</label>
+      <button onclick="startVoiceInput()">音声で話す</button>
+    </div>
+    
+    <!-- 検索フォーム -->
+    <div class="search-area">
+      <input type="text" id="search-input" placeholder="調べたいことを入力…" />
+      <button type="button" onclick="performSearch()">検索</button>
+    </div>
+    
+  </div>
+
+  <script src="script.js"></script>
+</body>
+</html>
