@@ -27,6 +27,14 @@ app.post("/chat", async (req, res) => {
   if (!message) return res.status(400).json({ error: "空メッセージ" });
 
   try {
+    const systemContent = `${personalityPrompt[characterType] || personalityPrompt.tsundere}
+ユーザーのメッセージに返答し、必ず以下のJSON形式のみで返してください（他のテキストは不要）：
+{"reply": "返答テキスト", "affectionDelta": 数値}
+affectionDeltaは-10〜+10の整数で、メッセージの感情に応じて決めてください：
+- 感謝・褒め言葉・親切な言葉：+5〜+10
+- 普通の会話・挨拶：-1〜+3
+- 無礼・悪口・否定的な言葉：-5〜-10`;
+
     const oaRes = await fetch("https://api.openai.com/v1/chat/completions", {
       method : "POST",
       headers: {
@@ -34,19 +42,29 @@ app.post("/chat", async (req, res) => {
         Authorization : `Bearer ${OPENAI_API_KEY}`
       },
       body: JSON.stringify({
-        model   : "gpt-4o-mini",
+        model              : "gpt-4o-mini",
+        response_format    : { type: "json_object" },
         messages: [
-          { role: "system", content: personalityPrompt[characterType] },
+          { role: "system", content: systemContent },
           { role: "user",   content: message }
         ]
       })
     });
-    const data  = await oaRes.json();
-    const reply = data.choices?.[0]?.message?.content?.trim() || "……";
+    const data = await oaRes.json();
+    const raw  = data.choices?.[0]?.message?.content?.trim() || "{}";
 
-    /* 簡易：好感度＋10 (ありがとう系) */
-    let newAff = affection;
-    if (/ありがと|サンキュー|thanks/i.test(message)) newAff = Math.min(affection + 10, 100);
+    let reply, affectionDelta;
+    try {
+      const parsed   = JSON.parse(raw);
+      reply          = parsed.reply        || "……";
+      affectionDelta = Number(parsed.affectionDelta) || 0;
+    } catch {
+      reply          = raw;
+      affectionDelta = 0;
+    }
+
+    /* 好感度を更新（0〜100にクランプ） */
+    let newAff = Math.max(0, Math.min(100, affection + affectionDelta));
 
     /* 性格遷移 */
     let newType   = "tsundere";
