@@ -4,6 +4,7 @@ const express   = require("express");
 const fetch     = require("node-fetch");
 const path      = require("path");
 const rateLimit = require("express-rate-limit");
+const helmet    = require("helmet");
 
 const app  = express();
 const PORT = process.env.PORT || 3000;
@@ -26,7 +27,22 @@ const apiLimiter = rateLimit({
   message: { error: "リクエストが多すぎます。少し待ってからもう一度お試しください。" },
 });
 
-app.use(express.json());
+/* ─ セキュリティヘッダー（helmet）
+   XSS・クリックジャッキング・MIME混乱などをまとめて防ぐ ─ */
+app.use(helmet({
+  contentSecurityPolicy: {
+    directives: {
+      defaultSrc: ["'self'"],
+      scriptSrc:  ["'self'"],           // 外部スクリプト読み込みを禁止
+      styleSrc:   ["'self'", "'unsafe-inline'"],  // style.css のインラインを許可
+      imgSrc:     ["'self'", "data:"],  // キャラ画像など同一オリジンのみ
+      mediaSrc:   ["'self'"],           // 音声合成は Web Speech API（ブラウザ内）なので問題なし
+      connectSrc: ["'self'"],           // fetch の送信先を自サーバーのみに制限
+    },
+  },
+}));
+
+app.use(express.json({ limit: "10kb" }));  // ボディサイズ上限を10KBに制限
 app.use(express.static(path.join(__dirname, "www")));
 app.use("/chat",   apiLimiter);
 app.use("/search", apiLimiter);

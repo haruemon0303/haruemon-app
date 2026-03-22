@@ -3,7 +3,7 @@
   "appName": "Haruemon",
   "webDir": "www",
   "server": {
-    "url": "http://192.168.1.23:3000",
-    "cleartext": true
+    "url": "https://haruemon-app.fly.dev",
+    "cleartext": false
   }
 }
