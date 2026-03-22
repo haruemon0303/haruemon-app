@@ -8,12 +8,17 @@
 let currentType      = localStorage.getItem("haru_type")      || "friendly";
 let currentAffection = Number(localStorage.getItem("haru_aff")) || 70;
 
-/* ページが描画されたら即 UI に反映 */
+/* ページが描画されたら即 UI に反映 ＆ ボタンにイベントを登録
+   onclick属性の代わりにここで登録することでCSPに準拠する */
 document.addEventListener("DOMContentLoaded", () => {
   document.getElementById("personalityDisplay").textContent =
     `現在のはるえもんの性格：${typeLabel(currentType)}`;
   document.getElementById("affectionBar").value           = currentAffection;
   document.getElementById("affectionDisplay").textContent = `${currentAffection}%`;
+
+  document.getElementById("send-btn").addEventListener("click", sendMessage);
+  document.getElementById("voice-btn").addEventListener("click", startVoiceInput);
+  document.getElementById("search-btn").addEventListener("click", () => performSearch());
 });
 
 /* 性格コード → 日本語ラベル */
