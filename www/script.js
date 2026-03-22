@@ -21,6 +21,22 @@ function typeLabel(t) {
   return { tsundere: "ツンデレ", friendly: "なかよし", deredere: "デレデレ" }[t] || "ツンデレ";
 }
 
+/* チャットログに1行追加する関数
+   innerHTML を使わず DOM要素を作ることで XSS を防ぐ */
+function appendChat(speaker, text, isError = false) {
+  const chatLog = document.getElementById("chat-area");
+  const p       = document.createElement("p");
+  if (isError) p.style.color = "red";
+
+  const strong = document.createElement("strong");
+  strong.textContent = `${speaker}：`;  // textContent はHTMLとして解釈されない
+
+  p.appendChild(strong);
+  p.appendChild(document.createTextNode(` ${text}`));  // テキストノードも同様
+  chatLog.appendChild(p);
+  chatLog.scrollTop = chatLog.scrollHeight;
+}
+
 /* ──────────────────────────────────────────
    2. 発声関数（Web Speech API）
 ────────────────────────────────────────── */
@@ -61,7 +77,7 @@ async function sendMessage() {
   if (!userMessage) return;
 
   /* 自分の発言を表示 */
-  chatLog.innerHTML += `<p><strong>あなた：</strong> ${userMessage}</p>`;
+  appendChat("あなた", userMessage);
   input.value = "";
 
   try {
@@ -89,12 +105,11 @@ async function sendMessage() {
     document.getElementById("affectionDisplay").textContent = `${currentAffection}%`;
 
     /* 返答を表示＆発声 */
-    chatLog.innerHTML += `<p><strong>はるえもん：</strong> ${j.reply}</p>`;
-    chatLog.scrollTop = chatLog.scrollHeight;
+    appendChat("はるえもん", j.reply);
     speak(j.reply);
 
   } catch (e) {
-    chatLog.innerHTML += `<p style="color:red;">通信エラー：${e.message}</p>`;
+    appendChat("エラー", "通信に失敗しました。もう一度お試しください。", true);
   }
 }
 
@@ -107,7 +122,7 @@ async function performSearch(queryText) {
   const query        = queryText || input.value.trim();
   if (!query) return;
 
-  chatLog.innerHTML += `<p><strong>あなた（検索）：</strong> ${query}</p>`;
+  appendChat("あなた（検索）", query);
   input.value = "";
 
   try {
@@ -118,12 +133,11 @@ async function performSearch(queryText) {
     });
     const j  = await r.json();
 
-    chatLog.innerHTML += `<p><strong>はるえもん（検索結果）：</strong> ${j.result}</p>`;
-    chatLog.scrollTop = chatLog.scrollHeight;
+    appendChat("はるえもん（検索結果）", j.result);
     speak(j.result);
 
   } catch (e) {
-    chatLog.innerHTML += `<p style="color:red;">検索エラー：${e.message}</p>`;
+    appendChat("エラー", "検索に失敗しました。もう一度お試しください。", true);
   }
 }
 

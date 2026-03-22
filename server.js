@@ -1,8 +1,9 @@
 // server.js ― Fly.io / ローカル共通
 
-const express = require("express");
-const fetch   = require("node-fetch");
-const path    = require("path");
+const express   = require("express");
+const fetch     = require("node-fetch");
+const path      = require("path");
+const rateLimit = require("express-rate-limit");
 
 const app  = express();
 const PORT = process.env.PORT || 3000;
@@ -11,8 +12,24 @@ const PORT = process.env.PORT || 3000;
 const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
 const SERPAPI_KEY    = process.env.SERPAPI_KEY;
 
+/* ─ 入力長の上限 ─ */
+const MAX_MESSAGE_LENGTH = 500;  // 会話メッセージの最大文字数
+const MAX_QUERY_LENGTH   = 200;  // 検索クエリの最大文字数
+
+/* ─ レート制限：/chat と /search に適用
+   1つのIPから1分間に20回まで（超えたら429を返す） ─ */
+const apiLimiter = rateLimit({
+  windowMs: 60 * 1000,  // 1分間
+  max: 20,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: "リクエストが多すぎます。少し待ってからもう一度お試しください。" },
+});
+
 app.use(express.json());
 app.use(express.static(path.join(__dirname, "www")));
+app.use("/chat",   apiLimiter);
+app.use("/search", apiLimiter);
 
 /* ─ 性格定義 ─ */
 const personalityPrompt = {
@@ -24,7 +41,8 @@ const personalityPrompt = {
 /* ─ 会話エンドポイント ─ */
 app.post("/chat", async (req, res) => {
   const { message, characterType = "tsundere", affection = 50 } = req.body;
-  if (!message) return res.status(400).json({ error: "空メッセージ" });
+  if (!message || typeof message !== "string") return res.status(400).json({ error: "空メッセージ" });
+  if (message.length > MAX_MESSAGE_LENGTH) return res.status(400).json({ error: `メッセージは${MAX_MESSAGE_LENGTH}文字以内にしてください` });
 
   try {
     const systemContent = `${personalityPrompt[characterType] || personalityPrompt.tsundere}
@@ -87,7 +105,8 @@ affectionDeltaは-10〜+10の整数で、メッセージの感情に応じて決
 /* ─ 検索エンドポイント ─ */
 app.post("/search", async (req, res) => {
   const { query } = req.body;
-  if (!query) return res.status(400).json({ error: "検索語なし" });
+  if (!query || typeof query !== "string") return res.status(400).json({ error: "検索語なし" });
+  if (query.length > MAX_QUERY_LENGTH) return res.status(400).json({ error: `検索語は${MAX_QUERY_LENGTH}文字以内にしてください` });
 
   try {
     const sRes = await fetch(
